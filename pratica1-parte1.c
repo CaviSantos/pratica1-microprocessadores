@@ -1,69 +1,77 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdint.h>
 
-const char* instrucoes_para_binario(const char* instrucao){
-    if(strcmp(instrucao, "add") == 0 ) return "0001";
-    else if(strcmp(instrucao, "sub") ==0) return "0010";
-    else return NULL;
-    
+// Função para converter as instruções em binário
+uint8_t instrucoes_para_binario(const char* instrucao) {
+    if (strcmp(instrucao, "add") == 0) return 0x01;  // 0001 em binário
+    else if (strcmp(instrucao, "sub") == 0) return 0x02; // 0010 em binário
+    else return 0x00;  // Caso a instrução não seja add ou sub
 }
 
-int main()
-{
-    FILE *arquivotexto, *arquivobinario; // ponteiro para arquivos.
+// Função para converter uma string binária em um byte (uint8_t)
+void string_para_binario(const char* buffer, uint8_t *byte) {
+    uint8_t len = strlen(buffer);
+    *byte = 0;  // Inicializamos o byte como 0
     
-    
-    arquivotexto = fopen("arquivo.txt", "w"); // abre o arquivo de texto na função write
-    
-    if(arquivotexto == NULL){ // se o arquivo não abrir ele retorna 1.
+    // Convertemos a string binária para o byte correspondente
+    for (uint8_t i = 0; i < len; i++) {
+        if (buffer[i] == '1') {
+            *byte |= (1 << (len - 1 - i));  // Definimos o bit correspondente
+        }
+    }
+}
+
+int main() {
+    FILE *arquivotexto, *arquivobinario;  // Ponteiros para arquivos
+
+    // Abrir o arquivo de texto para escrita
+    arquivotexto = fopen("arquivo.txt", "w");
+    if (arquivotexto == NULL) {
         return 1;
     }
-    
-    //o intuito de cada fprintf é ser cada um escrito em uma linha.
-    //um abaixo do outro no arquivo.
-    fprintf(arquivotexto, "%s","add\n"); //0001
-    fprintf(arquivotexto,"%s","1111\n");
-    fprintf(arquivotexto,"%s","1100\n");
-    
-    
-    fprintf(arquivotexto,"%s","sub\n"); //0010
-    fprintf(arquivotexto,"%s","0101\n");
-    fprintf(arquivotexto,"%s","0110\n");
 
-    
-    fclose(arquivotexto); // fecha o arquivo txt.
-    
-    
-    
-    arquivobinario = fopen("arquivo.bin", "wb"); // abre o arquivo binario.
-    
-    if(arquivobinario == NULL){ // verifica se abriu, se não retorna 1.
+    // Escrever instruções e números binários no arquivo de texto
+    fprintf(arquivotexto, "%s", "add\n");  // ADD
+    fprintf(arquivotexto, "%s", "1111\n");
+    fprintf(arquivotexto, "%s", "1100\n");
+
+    fprintf(arquivotexto, "%s", "sub\n");  // SUB
+    fprintf(arquivotexto, "%s", "0101\n");
+    fprintf(arquivotexto, "%s", "0110\n");
+
+    fclose(arquivotexto); // Fechar o arquivo de texto
+
+    // Abrir o arquivo binário para escrita
+    arquivobinario = fopen("arquivo.bin", "wb");
+    if (arquivobinario == NULL) {
         return 1;
     }
-    
-    char linha[256]; //ponteiro para char, para alocar as linhas dinamicamente.
-    
-    
-    arquivotexto = fopen("arquivo.txt", "r"); // abre novamente o arquivo txt.
 
-    while(fgets(linha,sizeof(linha),arquivotexto)!= NULL ){ // converte as cada linha do arquivo txt para binario.
-        linha[strcspn(linha, "\n")] = 0;
-        
-        const char *bin = instrucoes_para_binario(linha);
-        
-        if(bin !=NULL){
-            fwrite(bin,sizeof(char),4,arquivobinario);
+    char linha[256];  // Buffer para armazenar cada linha lida do arquivo de texto
+    uint8_t binario;  // Variável para armazenar o valor binário correspondente à linha
+    
+    // Abrir o arquivo de texto para leitura
+    arquivotexto = fopen("arquivo.txt", "r");
+
+    // Processa cada linha do arquivo de texto
+    while (fgets(linha, sizeof(linha), arquivotexto) != NULL) {
+        linha[strcspn(linha, "\n")] = 0;  // Remover a quebra de linha do final da string
+
+        // Verificar se a linha é uma instrução e converter para binário
+        if (strcmp(linha, "add") == 0 || strcmp(linha, "sub") == 0) {
+            binario = instrucoes_para_binario(linha);  // Converter instrução para binário
+        } else {
+            string_para_binario(linha, &binario);  // Converter string binária para byte
         }
-        else{
-            fwrite(linha, sizeof(linha),strlen(linha),arquivobinario);
-        }
-        
+
+        // Escrever o byte no arquivo binário
+        fwrite(&binario, sizeof(uint8_t), 1, arquivobinario);
     }
-    
-    
-    fclose(arquivobinario);
-    fclose(arquivotexto);
-    
+
+    fclose(arquivobinario);  // Fechar o arquivo binário
+    fclose(arquivotexto);    // Fechar o arquivo de texto
+
     return 0;
 }
